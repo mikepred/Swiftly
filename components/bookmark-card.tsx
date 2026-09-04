@@ -34,12 +34,16 @@ interface LinkPreviewData {
 const previewCache = new Map<string, LinkPreviewData | null>()
 
 function LinkPreview({ url, tweetUrl, tweetId, prominent = false }: { url: string; tweetUrl: string; tweetId?: string; prominent?: boolean }) {
-  const [data, setData] = useState<LinkPreviewData | null | 'loading'>('loading')
+  const cacheKey = tweetId ? `${url}:${tweetId}` : url
+  const [data, setData] = useState<LinkPreviewData | null | 'loading'>(() => {
+    if (previewCache.has(cacheKey)) {
+      return previewCache.get(cacheKey) ?? null
+    }
+    return 'loading'
+  })
 
   useEffect(() => {
-    const cacheKey = tweetId ? `${url}:${tweetId}` : url
     if (previewCache.has(cacheKey)) {
-      setData(previewCache.get(cacheKey) ?? null)
       return
     }
     let cancelled = false
@@ -55,7 +59,7 @@ function LinkPreview({ url, tweetUrl, tweetId, prominent = false }: { url: strin
         if (!cancelled) { previewCache.set(cacheKey, null); setData(null) }
       })
     return () => { cancelled = true }
-  }, [url, tweetId])
+  }, [url, tweetId, cacheKey])
 
   if (data === 'loading') {
     return (

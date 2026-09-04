@@ -1,0 +1,3 @@
+## 2025-05-18 - Prisma SQLite Batch Import Optimization
+**Learning:** Sequential per-record queries (`findUnique` + `create` + `createMany`) in Next.js API routes when processing large arrays (such as importing bookmark exports) create a severe N+1 database roundtrip bottleneck over SQLite.
+**Action:** When bulk inserting records with relations, deduplicate inputs in memory against a single `findMany({ where: { key: { in: batch } } })` query, generate client-side IDs with `crypto.randomUUID()`, and insert all parent and child entities in bulk using `createMany` wrapped in a single `$transaction`.

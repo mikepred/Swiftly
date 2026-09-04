@@ -749,7 +749,22 @@ function FolderBrowser({ onSelect, onClose }: { onSelect: (path: string) => void
     setLoading(false)
   }, [])
 
-  useEffect(() => { browse() }, [browse])
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/settings/browse')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setCurrent(data.current)
+        setParent(data.parent)
+        setDirs(data.directories)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="border border-zinc-700 rounded-xl bg-zinc-800/50 overflow-hidden">
