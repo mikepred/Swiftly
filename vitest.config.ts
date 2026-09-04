@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   test: {
-    globals: true,
+    globals: true, exclude: ['**/node_modules/**', '**/dist/**', '**/.next/**', '**/.git/**', '**/.cache/**', '__tests__/setup-agent.test.js'],
     environment: 'node',
   },
   resolve: {

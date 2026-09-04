@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'ci/agent-foundation*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}'
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Setup Environment
+        id: setup
+        run: ./scripts/setup-agent.sh
+
+      - name: Run Setup Tests
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: node --test scripts/tests/setup-agent.check.cjs
+
+      - name: Run Application Tests
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run test
+
+      - name: Run Lint
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run lint
+
+      - name: Run Typecheck
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npx --no-install tsc --noEmit
+
+      - name: Run Build
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run build
