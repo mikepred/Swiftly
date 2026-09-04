@@ -43,7 +43,15 @@ async function fetchBookmarksFull(where?: object): Promise<BookmarkRow[]> {
   }) as Promise<BookmarkRow[]>
 }
 
-function formatCsvField(value: string): string {
+/**
+ * Formats a single field for CSV output.
+ * Prevents CSV Formula Injection (DDE) by prepending a single quote
+ * if the value starts with formula characters (=, +, -, @, tab, CR).
+ */
+export function formatCsvField(value: string): string {
+  if (/^\s*[=+\-@\t\r]/.test(value)) {
+    value = `'${value}`
+  }
   const escaped = value.replace(/"/g, '""')
   return `"${escaped}"`
 }
