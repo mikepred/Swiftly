@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'ci/agent-foundation*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read Node.js version from .nvmrc
+        id: node_version
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Environment
+        run: ./scripts/setup-agent.sh
+
+      - name: Run all checks
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: |
+          node -e "
+          const { execSync } = require('child_process');
+          let failed = false;
+
+          const runCmd = (cmd, name) => {
+            console.log('\n==> Running ' + name);
+            try {
+              execSync(cmd, { stdio: 'inherit' });
+            } catch (err) {
+              failed = true;
+              console.error('Command failed:', name);
+            }
+          };
+
+          runCmd('node --test __tests__/setup-agent.test.js', 'Setup Tests');
+          runCmd('npm run lint', 'Lint');
+          runCmd('npx --no-install tsc --noEmit', 'Typecheck');
+          runCmd('npm run build', 'Build');
+          runCmd('npm run test', 'Application Tests');
+
+          if (failed) {
+            console.error('\nOne or more checks failed. Please review the output above.');
+            process.exitCode = 1;
+          }
+          "

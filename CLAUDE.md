@@ -1,5 +1,8 @@
 # Siftly
 
+> **Notice to AI Agents (Jules/Hermes):** Please see `AGENTS.md` for agent-specific instructions.
+
+
 Self-hosted Twitter/X bookmark manager with AI-powered categorization, search, and visualization.
 
 ## Quick Setup
@@ -11,8 +14,8 @@ Self-hosted Twitter/X bookmark manager with AI-powered categorization, search, a
 Or manually:
 
 ```bash
-npm install
-npx prisma generate && npx prisma db push
+npm ci
+npx --no-install prisma generate && npx --no-install prisma migrate deploy
 npx next dev
 ```
 
@@ -35,7 +38,7 @@ To verify it's working, hit: `GET /api/settings/cli-status`
 npx next dev          # Start dev server (port 3000)
 npx tsc --noEmit      # Type check
 npx prisma studio     # Database GUI
-npx prisma db push    # Apply schema changes to DB
+npx --no-install prisma migrate deploy    # Apply schema changes to DB
 npm run build         # Production build
 ```
 
@@ -112,6 +115,6 @@ npm run siftly -- stats                              # Alternative via npm scrip
 
 ## Database
 
-SQLite at `prisma/dev.db`. After schema changes: `npx prisma db push`
+SQLite at `prisma/dev.db`. After schema changes: `npx --no-install prisma migrate deploy`
 
 Models: `Bookmark`, `MediaItem`, `BookmarkCategory`, `Category`, `Setting`, `ImportJob` — see `prisma/schema.prisma` for details.
