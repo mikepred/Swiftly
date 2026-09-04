@@ -10,6 +10,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: '${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}'
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -17,49 +21,49 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Read Node.js version from .nvmrc
-        id: node_version
-        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Setup Environment
+        id: setup
         run: ./scripts/setup-agent.sh
 
-      - name: Run all checks
+      - name: Run Setup Tests
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         env:
           DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
-        run: |
-          node -e "
-          const { execSync } = require('child_process');
-          let failed = false;
+        run: node --test scripts/tests/setup-agent.check.cjs
 
-          const runCmd = (cmd, name) => {
-            console.log('\n==> Running ' + name);
-            try {
-              execSync(cmd, { stdio: 'inherit' });
-            } catch (err) {
-              failed = true;
-              console.error('Command failed:', name);
-            }
-          };
+      - name: Run Application Tests
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run test
 
-          runCmd('node --test __tests__/setup-agent.test.js', 'Setup Tests');
-          runCmd('npm run lint', 'Lint');
-          runCmd('npx --no-install tsc --noEmit', 'Typecheck');
-          runCmd('npm run build', 'Build');
-          runCmd('npm run test', 'Application Tests');
+      - name: Run Lint
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run lint
 
-          if (failed) {
-            console.error('\nOne or more checks failed. Please review the output above.');
-            process.exitCode = 1;
-          }
-          "
+      - name: Run Typecheck
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npx --no-install tsc --noEmit
+
+      - name: Run Build
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/agent-ci-test.db"
+        run: npm run build
