@@ -191,6 +191,7 @@ export default function Nav() {
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={openSearch}
+          aria-label="Search bookmarks"
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/40 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600/60 transition-all text-xs"
         >
           <Search size={12} className="shrink-0" />
@@ -230,6 +231,8 @@ export default function Nav() {
         <div className="px-2 py-3 flex-1 min-h-0 flex flex-col">
           <button
             onClick={toggleCollections}
+            aria-label="Toggle collections list"
+            aria-expanded={collectionsOpen}
             className="flex items-center justify-between px-2 mb-2 w-full group"
           >
             <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-semibold">

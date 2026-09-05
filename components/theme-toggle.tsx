@@ -26,6 +26,7 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       title={light ? 'Switch to dark mode' : 'Switch to light mode'}
+      aria-label={light ? 'Switch to dark mode' : 'Switch to light mode'}
       className="flex items-center justify-center w-7 h-7 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50 transition-all"
     >
       {light ? <Sun size={14} /> : <Moon size={14} />}
