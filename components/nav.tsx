@@ -231,7 +231,6 @@ export default function Nav() {
         <div className="px-2 py-3 flex-1 min-h-0 flex flex-col">
           <button
             onClick={toggleCollections}
-            aria-label="Toggle collections list"
             aria-expanded={collectionsOpen}
             className="flex items-center justify-between px-2 mb-2 w-full group"
           >
