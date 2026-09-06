@@ -1,0 +1,68 @@
+name: Hermes platform validation
+
+on:
+  push:
+    branches:
+      - 'hermes-validation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-platform:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Create disposable VM test identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo groupadd -g 22000 hermes-policy-read
+          for pair in scout:21001 analyst:21002 strategist:21003 guardian:21004 executor:21005 observer:21006 orchestrator:21007; do
+            role=${pair%:*}
+            uid=${pair#*:}
+            sudo groupadd -g "$uid" "hermes-$role"
+            sudo useradd -u "$uid" -g "$uid" -G hermes-policy-read -m -s /usr/sbin/nologin "hermes-$role"
+            sudo chmod 0700 "/home/hermes-$role"
+          done
+      - name: Test native cloud Linux permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p validation/results/cloud-native
+          sudo env TMPDIR=/var/tmp python3 validation/linux_validation.py --output validation/results/cloud-native/permissions.json
+          sudo chown -R "$(id -u):$(id -g)" validation/results/cloud-native
+      - name: Build disposable validation image
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_image=$(cat validation/base-image.txt)
+          docker build --build-arg "BASE_IMAGE=$base_image" --tag hermes-validation:ci validation
+      - name: Test container isolation, resource limits, and two repository command adapters
+        run: python3 validation/run_container_validation.py --image hermes-validation:ci --output-dir validation/results/cloud-containers --environment cloud-linux
+      - name: Record validation scope
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Validation scope'
+            echo 'This run tests Linux permissions, container isolation, bounded process/memory exhaustion, and synthetic Python/JavaScript command fixtures.'
+            echo 'It does not certify live Hermes agent dispatch, model authentication, approval/publication logic, or service recovery.'
+            echo "Commit: $GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hermes-platform-validation-${{ github.run_id }}
+          path: validation/results/
+          if-no-files-found: error
+          retention-days: 14
