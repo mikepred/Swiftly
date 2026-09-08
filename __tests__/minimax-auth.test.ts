@@ -17,7 +17,7 @@ describe('resolveMiniMaxClient', () => {
   it('should use override key when provided', () => {
     const client = resolveMiniMaxClient({ overrideKey: 'test-override-key' })
     expect(client).toBeDefined()
-    expect(client.baseURL).toBe('https://intentional-workflow-validation.invalid/v1')
+    expect(client.baseURL).toBe('https://api.minimax.io/v1')
   })
 
   it('should use DB key when provided', () => {
